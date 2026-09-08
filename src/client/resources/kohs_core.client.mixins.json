@@ -1,0 +1,29 @@
+{
+	"required": true,
+	"package": "dev.zymekoh.kohscore.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"plugin": "dev.zymekoh.kohscore.mixin.CoreMixinPlugin",
+	"client": [
+		"BlockAnimationMixin",
+		"BlockEntityRenderDispatcherMixin",
+		"BlockableEventLoopMixin",
+		"CloudAnimationMixin",
+		"DebugRendererMixin",
+		"EntityAnimationMixin",
+		"EntityRenderDispatcherMixin",
+		"HandAnimationMixin",
+		"LightmapRenderStateExtractorMixin",
+		"LivingEntityRendererMixin",
+		"OptionsScreenMixin",
+		"ParticleEngineMixin",
+		"ParticleLightCacheMixin",
+		"ScreenInvoker",
+		"SignTextRenderMixin",
+		"SpriteAnimationMixin",
+		"SpriteContentsMixin",
+		"ToastManagerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

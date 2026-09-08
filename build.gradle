@@ -1,0 +1,88 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+def releaseVersion = version.toString()
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	mavenCentral()
+	maven {
+		name = 'Terraformers'
+		url = 'https://maven.terraformersmc.com/releases/'
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		'kohs_core' {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	// Mojang official mappings are Loom's default from 26.1 onwards, so no `mappings` line.
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// The long `net.fabricmc.fabric-loom` plugin id does not create the `mod*` configurations,
+	// so Mod Menu has to come in as a plain compileOnly with transitives switched off.
+	compileOnly("com.terraformersmc:modmenu:${project.modmenu_version}") { transitive = false }
+}
+
+processResources {
+	inputs.property 'version', releaseVersion
+	inputs.property 'minecraft_version', project.minecraft_version
+	inputs.property 'loader_version', project.loader_version
+	inputs.property 'java_version', project.java_version
+	includeEmptyDirs = false
+
+	// Accept the whole minor line: ">=26.1.2 <26.2".
+	def minecraftParts = project.minecraft_version.tokenize('.')
+	def minecraftUpperBound = "${minecraftParts[0]}.${(minecraftParts[1] as int) + 1}"
+	def minecraftVersionRange = ">=${project.minecraft_version} <${minecraftUpperBound}"
+
+	filesMatching('fabric.mod.json') {
+		expand 'version': releaseVersion,
+				'minecraft_version': minecraftVersionRange,
+				'loader_version': project.loader_version,
+				'java_version': project.java_version
+	}
+
+	// The Latin American locales are identical to es_es; generating them keeps one source of truth.
+	['es_ar', 'es_cl', 'es_ec', 'es_mx', 'es_uy', 'es_ve'].each { spanishLocale ->
+		from('src/main/resources/assets/kohs_core/lang/es_es.json') {
+			into 'assets/kohs_core/lang'
+			rename { "${spanishLocale}.json" }
+		}
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.release = Integer.parseInt(project.java_version)
+	options.encoding = 'UTF-8'
+}
+
+java {
+	withSourcesJar()
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version))
+	}
+}
+
+jar {
+	from('LICENSE') {
+		rename { "${it}_${project.archives_base_name}" }
+	}
+}

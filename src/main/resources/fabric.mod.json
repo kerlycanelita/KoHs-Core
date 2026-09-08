@@ -1,0 +1,53 @@
+{
+	"schemaVersion": 1,
+	"id": "kohs_core",
+	"version": "${version}",
+	"name": "KoHs Core",
+	"description": "Optimisation layer and coordination bus for the KoHs mod family. Extreme graphics controls, a full particle governor with live previews, a precise JVM profile advisor, and a domain registry that lets sibling mods claim ownership of a setting so Core steps aside instead of fighting them.",
+	"authors": [
+		"Zymekoh"
+	],
+	"contact": {
+		"homepage": "https://github.com/zymekoh",
+		"sources": "https://github.com/zymekoh/kohs-core"
+	},
+	"license": "MIT",
+	"icon": "assets/kohs_core/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.zymekoh.kohscore.KoHsCoreClient"
+		],
+		"modmenu": [
+			"dev.zymekoh.kohscore.orchestration.ModMenuIntegration"
+		]
+	},
+	"mixins": [
+		{
+			"config": "kohs_core.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "${minecraft_version}",
+		"java": ">=${java_version}",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*",
+		"herzium": "*",
+		"kohs_inventory_tweaks": "*",
+		"kohs_anchors": "*",
+		"kohs_death_effects": "*",
+		"kohs_optimatch": "*",
+		"kohs_modhud": "*"
+	},
+	"custom": {
+		"kohs:core": {
+			"api_version": 1,
+			"entrypoint": "kohs:core",
+			"module_interface": "dev.zymekoh.kohscore.api.CoreModule"
+		}
+	}
+}
