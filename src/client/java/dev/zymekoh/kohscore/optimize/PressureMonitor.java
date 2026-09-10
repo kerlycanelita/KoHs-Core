@@ -17,18 +17,12 @@ import net.minecraft.client.Minecraft;
  */
 public final class PressureMonitor {
 
-	private static final long SAMPLE_INTERVAL_NANOS = 1_000_000_000L;
-	/** Longer gaps mean rendering was paused (screen switch, breakpoint, minimisation), not a frame. */
-	private static final long MAX_TRACKED_FRAME_NANOS = 1_000_000_000L;
 	/** How many consecutive calm samples are needed before stepping back down a level. */
 	private static final int RECOVERY_SAMPLES = 3;
 
 	private final CoreBus bus;
 
-	private long lastSampleNanos = System.nanoTime();
-	private long lastFrameNanos;
-	private long worstFrameNanos;
-	private int framesSinceSample;
+	private final FrameWindow frameWindow = new FrameWindow();
 	private int calmSamples;
 
 	private volatile PressureLevel pressure = PressureLevel.RELAXED;
@@ -43,29 +37,14 @@ public final class PressureMonitor {
 
 	/** Called once per rendered frame. Deliberately trivial; the real work happens once a second. */
 	public void onFrame() {
-		long now = System.nanoTime();
-		if (this.lastFrameNanos != 0L) {
-			long frameNanos = now - this.lastFrameNanos;
-			if (frameNanos > 0L && frameNanos <= MAX_TRACKED_FRAME_NANOS) {
-				this.worstFrameNanos = Math.max(this.worstFrameNanos, frameNanos);
-			}
-		}
-		this.lastFrameNanos = now;
-		this.framesSinceSample++;
-		long elapsed = now - this.lastSampleNanos;
-		if (elapsed >= SAMPLE_INTERVAL_NANOS) {
-			this.sample(elapsed);
-			this.lastSampleNanos = now;
-			this.framesSinceSample = 0;
-		}
+		FrameWindow.Sample sample = this.frameWindow.frame(System.nanoTime());
+		if (sample != null) this.sample(sample);
 	}
 
-	private void sample(long elapsedNanos) {
-		float seconds = elapsedNanos / 1_000_000_000.0F;
-		this.framesPerSecond = Math.round(this.framesSinceSample / seconds);
-		this.frameTimeMillis = this.framesSinceSample == 0 ? 0.0F : seconds * 1000.0F / this.framesSinceSample;
-		this.worstFrameTimeMillis = this.worstFrameNanos / 1_000_000.0F;
-		this.worstFrameNanos = 0L;
+	private void sample(FrameWindow.Sample sample) {
+		this.framesPerSecond = sample.fps();
+		this.frameTimeMillis = sample.meanMillis();
+		this.worstFrameTimeMillis = sample.worstMillis();
 
 		Runtime runtime = Runtime.getRuntime();
 		long max = runtime.maxMemory();

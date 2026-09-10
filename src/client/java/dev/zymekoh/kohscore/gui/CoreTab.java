@@ -14,6 +14,7 @@ import org.jspecify.annotations.Nullable;
 public enum CoreTab {
 
 	PERFORMANCE(null),
+	PROFILES(null),
 	GRAPHICS(Domain.GRAPHICS_QUALITY),
 	PARTICLES(Domain.PARTICLES),
 	ANIMATIONS(Domain.ANIMATED_TEXTURES),
@@ -37,7 +38,9 @@ public enum CoreTab {
 	}
 
 	public net.minecraft.resources.Identifier icon() {
-		return net.minecraft.resources.Identifier.fromNamespaceAndPath("kohs_core", "textures/gui/tabs/" + this.id + ".png");
+		// Reuse the existing tuning icon; no duplicate bitmap or missing texture on older packs.
+		String iconId = this == PROFILES ? "integration" : this.id;
+		return net.minecraft.resources.Identifier.fromNamespaceAndPath("kohs_core", "textures/gui/tabs/" + iconId + ".png");
 	}
 
 	/** The domain this tab writes to, or null for tabs that only read. */

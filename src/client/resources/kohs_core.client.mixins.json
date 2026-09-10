@@ -14,6 +14,7 @@
 		"HandAnimationMixin",
 		"LightmapRenderStateExtractorMixin",
 		"LivingEntityRendererMixin",
+		"FrameTimingMixin",
 		"OptionsScreenMixin",
 		"ParticleEngineMixin",
 		"ParticleLightCacheMixin",

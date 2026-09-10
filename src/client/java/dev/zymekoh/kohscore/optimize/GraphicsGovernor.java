@@ -191,4 +191,9 @@ public final class GraphicsGovernor {
 	public boolean hasSnapshot() {
 		return this.original != null;
 	}
+
+	/** A one-shot custom profile has its own undo; old quality tiers must not restore stale values. */
+	public void discardPresetSnapshot() {
+		this.original = null;
+	}
 }

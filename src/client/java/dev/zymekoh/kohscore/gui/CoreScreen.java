@@ -23,6 +23,9 @@ import dev.zymekoh.kohscore.jvm.JvmProfile;
 import dev.zymekoh.kohscore.mixin.ScreenInvoker;
 import dev.zymekoh.kohscore.optimize.MemoryGovernor;
 import dev.zymekoh.kohscore.orchestration.PriorityCompatibility;
+import dev.zymekoh.kohscore.profile.GameProfile;
+import dev.zymekoh.kohscore.profile.ProfileManager;
+import dev.zymekoh.kohscore.gui.widget.ProfileButton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -100,6 +103,7 @@ public final class CoreScreen extends Screen {
 	private boolean jvmProfilesFromReadyProbe;
 
 	private CoreTab tab = CoreTab.PERFORMANCE;
+	private Component profileStatus = Component.translatable("kohs_core.profile.info");
 	private @Nullable CoreSettingsPage siblingPage;
 
 	private double contentScroll;
@@ -335,6 +339,7 @@ public final class CoreScreen extends Screen {
 		}
 		switch (this.tab) {
 			case PERFORMANCE -> this.buildPerformanceTab();
+			case PROFILES -> this.buildProfilesTab();
 			case GRAPHICS -> this.buildGraphicsTab();
 			case PARTICLES -> this.buildParticlesTab();
 			case ANIMATIONS -> this.buildAnimationsTab();
@@ -381,6 +386,38 @@ public final class CoreScreen extends Screen {
 			if (key.startsWith("kohs_core.streaming.") && !key.endsWith(".master")) condition = () -> config.streamerMode;
 			if (condition != null) this.optionTree.depend(widget, condition, depth);
 		}
+	}
+
+	private void buildProfilesTab() {
+		this.rowCursorY = this.contentY;
+		int cardHeight = Math.max(22, Math.min(52, this.contentViewportHeight / 2));
+		for (GameProfile profile : GameProfile.values()) {
+			this.addRow(new ProfileButton(this.contentX, this.nextRowY(cardHeight), this.contentWidth,
+					cardHeight, profile.title(), profile.description(), () -> this.applyProfile(profile)));
+		}
+		ProfileButton undo = new ProfileButton(this.contentX, this.nextRowY(cardHeight), this.contentWidth,
+				cardHeight, Component.translatable("kohs_core.profile.undo"),
+				Component.translatable("kohs_core.profile.undo.description"), () -> this.applyProfile(null));
+		undo.active = ProfileManager.canUndo();
+		this.addRow(undo);
+		var status = new dev.zymekoh.kohscore.gui.widget.InfoRow(this.contentX, this.nextRowY(66),
+				this.contentWidth, this.profileStatus);
+		status.setDescription(this.profileStatus);
+		status.setTooltip(net.minecraft.client.gui.components.Tooltip.create(this.profileStatus));
+		this.addRow(status);
+		this.finishRows();
+	}
+
+	private void applyProfile(@Nullable GameProfile profile) {
+		try {
+			var result = profile == null ? ProfileManager.undo() : ProfileManager.apply(profile);
+			this.profileStatus = Component.translatable(profile == null ? "kohs_core.profile.restored"
+					: "kohs_core.profile.applied", result.changed(), result.skipped());
+		} catch (RuntimeException failure) {
+			dev.zymekoh.kohscore.KoHsCore.LOGGER.error("Could not apply/undo the graphics profile", failure);
+			this.profileStatus = Component.translatable("kohs_core.profile.failed");
+		}
+		this.rebuildWidgets();
 	}
 
 	private void buildSuiteTab() {
@@ -1226,8 +1263,6 @@ public final class CoreScreen extends Screen {
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-		KoHsCoreClient.noteFrame();
-
 		float entrance = CoreTheme.cubicOut(
 				CoreTheme.ease(System.nanoTime() / 1_000_000L - this.openedAtMillis, 280L));
 

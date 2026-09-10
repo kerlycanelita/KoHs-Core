@@ -62,6 +62,8 @@ public final class KoHsCoreClient implements ClientModInitializer {
 		ParticleGovernor newParticles = new ParticleGovernor(newDomains, newPressure, newBus);
 
 		bus = newBus;
+		newBus.subscribe(dev.zymekoh.kohscore.api.CoreSignals.InputLatency.class,
+				dev.zymekoh.kohscore.hud.InputLatencyReadout::accept);
 		domains = newDomains;
 		pressureMonitor = newPressure;
 		particleGovernor = newParticles;
@@ -118,11 +120,9 @@ public final class KoHsCoreClient implements ClientModInitializer {
 			}
 		});
 
-		// A HUD element is the cheapest per-frame hook available without touching the render loop.
-		// It only fires in game; the settings screen counts its own frames while it is open.
+		// Sampling happens once in Minecraft.runTick, independently of HUD visibility or screens.
 		HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, KoHsCore.id("frame_counter"),
 				(graphics, deltaTracker) -> {
-					noteFrame();
 					PerformanceHud.render(graphics);
 				});
 	}

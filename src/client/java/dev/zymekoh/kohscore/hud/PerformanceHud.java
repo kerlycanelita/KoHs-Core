@@ -29,6 +29,12 @@ public final class PerformanceHud {
 
 	private static final int PADDING = 4;
 	private static final int MARGIN = 4;
+	private static List<Component> cachedLines = List.of();
+	private static int cachedWidth;
+	private static int cachedDetail = -1;
+	private static Font cachedFont;
+	private static net.minecraft.locale.Language cachedLanguage;
+	private static long nextRefreshNanos;
 
 	private PerformanceHud() {
 	}
@@ -47,16 +53,24 @@ public final class PerformanceHud {
 		}
 
 		Font font = minecraft.font;
-		List<Component> lines = buildLines(config);
+		long now = System.nanoTime();
+		var language = net.minecraft.locale.Language.getInstance();
+		if (now >= nextRefreshNanos || cachedDetail != config.performanceHudDetail
+				|| cachedFont != font || cachedLanguage != language) {
+			cachedLines = buildLines(config);
+			cachedWidth = 0;
+			for (Component line : cachedLines) cachedWidth = Math.max(cachedWidth, font.width(line));
+			cachedDetail = config.performanceHudDetail;
+			cachedFont = font;
+			cachedLanguage = language;
+			nextRefreshNanos = now + 250_000_000L;
+		}
+		List<Component> lines = cachedLines;
 		if (lines.isEmpty()) {
 			return;
 		}
 
-		int textWidth = 0;
-		for (Component line : lines) {
-			textWidth = Math.max(textWidth, font.width(line));
-		}
-		int boxWidth = textWidth + PADDING * 2;
+		int boxWidth = Math.max(1, Math.min(graphics.guiWidth() - MARGIN * 2, cachedWidth + PADDING * 2));
 		int boxHeight = lines.size() * (font.lineHeight + 1) - 1 + PADDING * 2;
 
 		int screenWidth = graphics.guiWidth();
@@ -74,21 +88,37 @@ public final class PerformanceHud {
 			// Only the first line is colour-coded; colouring every row turns a readout into a
 			// traffic light nobody can read at a glance.
 			int color = index == 0 ? pressureColor() : CoreTheme.TEXT_MUTED;
-			graphics.text(font, lines.get(index), x + PADDING, lineY, color);
+			if (cachedWidth <= boxWidth - PADDING * 2) {
+				// The cached width already proves these fit; don't measure every glyph again per frame.
+				graphics.text(font, lines.get(index), x + PADDING, lineY, color);
+			} else {
+				CoreDraw.clippedText(graphics, font, lines.get(index), x + PADDING, lineY,
+						Math.max(1, boxWidth - PADDING * 2), color);
+			}
 			lineY += font.lineHeight + 1;
 		}
 	}
 
 	private static List<Component> buildLines(CoreConfig config) {
-		List<Component> lines = new ArrayList<>(3);
+		List<Component> lines = new ArrayList<>(5);
 		lines.add(Component.literal(KoHsCoreClient.framesPerSecond() + " FPS"));
 
 		if (config.performanceHudDetail >= 1) {
-			lines.add(Component.literal(String.format(Locale.ROOT, "%.1f ms",
+			lines.add(Component.translatable("kohs_core.hud.frame_time", String.format(Locale.ROOT, "%.2f",
 					KoHsCoreClient.frameTimeMillis())));
 		}
+		// Above the worst-frame line on purpose: frame time and input latency sit next to each other
+		// so the two stop being confused for one another, which is exactly what happens when only
+		// the first is on screen.
+		dev.zymekoh.kohscore.api.CoreSignals.InputLatency latency = InputLatencyReadout.current();
+		if (config.performanceHudDetail >= 1 && latency != null) {
+			lines.add(Component.translatable("kohs_core.hud.input_latency",
+					String.format(Locale.ROOT, "%.2f", latency.p50Millis()),
+					String.format(Locale.ROOT, "%.2f", latency.p99Millis()),
+					latency.source()));
+		}
 		if (config.performanceHudDetail >= 2) {
-			lines.add(Component.literal(String.format(Locale.ROOT, "worst %.0f ms",
+			lines.add(Component.translatable("kohs_core.hud.worst_frame", String.format(Locale.ROOT, "%.1f",
 					KoHsCoreClient.worstFrameTimeMillis())));
 			lines.add(Component.literal(MemoryGovernor.usedHeapMib() + " / "
 					+ MemoryGovernor.maxHeapMib() + " MiB"));

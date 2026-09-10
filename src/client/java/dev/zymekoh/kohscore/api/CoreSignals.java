@@ -44,4 +44,21 @@ public final class CoreSignals {
 	 */
 	public record SettingsApplied() {
 	}
+
+	/**
+	 * Published by whichever mod owns {@link Domain#INPUT_LATENCY}, so Core can show a number it is
+	 * in no position to measure itself.
+	 *
+	 * <p>Core's overlay reports frame time, which is not latency and is routinely mistaken for it.
+	 * An input mod is the only thing on the client that knows when a device report arrived, so it
+	 * is the only thing that can close that measurement; this signal is how it says so without Core
+	 * having to import it.
+	 *
+	 * @param source        display name of the publishing mod, shown beside the figure
+	 * @param p50Millis     median age of the newest report when the camera consumed it
+	 * @param p99Millis     the tail, which is what a player actually notices
+	 * @param sampleCount   measurements behind those percentiles; zero means do not display
+	 */
+	public record InputLatency(String source, float p50Millis, float p99Millis, int sampleCount) {
+	}
 }

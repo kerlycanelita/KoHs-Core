@@ -86,3 +86,20 @@ jar {
 		rename { "${it}_${project.archives_base_name}" }
 	}
 }
+
+// Pure logic checks run without a game, graphics context, or third-party test framework.
+sourceSets {
+	coreChecks {
+		java.srcDirs = ['src/coreChecks/java', 'src/client/java']
+		java.include '**/CoreChecks.java', '**/ProfileChanges.java', '**/FrameWindow.java'
+	}
+}
+
+tasks.register('coreChecks', JavaExec) {
+	dependsOn tasks.named('coreChecksClasses')
+	classpath = sourceSets.coreChecks.runtimeClasspath
+	mainClass = 'dev.zymekoh.kohscore.CoreChecks'
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+}
+
+tasks.named('check') { dependsOn tasks.named('coreChecks') }
