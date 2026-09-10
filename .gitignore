@@ -41,3 +41,13 @@ GEMINI.md
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Machine-local settings and diagnostics
+.claude/settings.local.json
+.env
+.env.*
+!.env.example
+*.jfr
+*.hprof
+__pycache__/
+*.pyc
